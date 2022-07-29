@@ -14,20 +14,28 @@ def blogHome(request):
 def blogPost(request, slug):
     post = Post.objects.filter(slug=slug).first()
     comments = BlogComment.objects.filter(post=post)
-    context = {'post':post, 'comments':comments}
+    print(request.user)
+    context = {'post':post, 'comments':comments, 'user':request.user}
     return render(request, 'blog/blogPost.html', context)
     # return HttpResponse(f'This is blogPost:{slug}')
 
 
-def postComment(request, slug):
+def postComment(request):
     if request.method == 'POST':
         comment = request.POST.get('comment')
         user = request.user
         postSno = request.POST.get('postSno')
-        post = Posts.objects.get(sno=postSno)
+        post = Post.objects.get(sno=postSno)
+        # reply comment
+        parentSno = request.POST.get("parentSno")
+        if parentSno == "":
+            comment = BlogComment(comment=comment, user=user, post=post)
+            comment.save()
+            messages.success(request, "Your comment has been posted successfully")
+        else:
+            parent = BlogComment.objects.get(sno=parentSno)
+            comment = BlogComment(comment=comment, user=user, post=post, parent=parent)
+            comment.save()
+            messages.success(request, "Your comment has been posted successfully")
 
-        comment = BlogComment(comment=comment, user=user, post=post)
-        comment.save()
-        messages.success(request, "Your comment has been posted successfully")
-
-    return redirect('/')
+    return redirect(f"/blog/{post.slug}")
